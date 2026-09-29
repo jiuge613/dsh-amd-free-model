@@ -94,11 +94,20 @@ export async function verifyKey(apiKey, { signal } = {}) {
  * @param {number} [options.timeoutMs]
  * @returns {Promise<{state: string, detail?: string, latencyMs: number, ttftMs?: number}>}
  */
-export async function probeModel(model, { apiKey, attributionUserAgent, load, signal, timeoutMs = 45000 } = {}) {
+export async function probeModel(model, { apiKey, attributionUserAgent, load, signal, timeoutMs = 45000, preflight } = {}) {
   const started = Date.now()
   if (typeof apiKey !== 'string' || apiKey.trim() === '') {
     return { state: STATE.noKey, detail: 'no API key configured', latencyMs: 0 }
   }
+
+  // A pool the load endpoint already reports as full is not worth a 45-second
+  // wait to learn what the queue is about to say. Announcing `busy` up front
+  // costs one line and saves the round its slowest leg — and, on the settings
+  // page, it is the difference between a card that says "busy" immediately and
+  // one that sits blank for three quarters of a minute before saying the same
+  // thing. The ping still runs afterwards: capacity can free up mid-round, and
+  // a model that answers is reported as available rather than assumed busy.
+  if (isSaturated(load) && typeof preflight === 'function') preflight(model.id, load)
 
   const body = { model: model.id, messages: [{ role: 'user', content: PING_PROMPT }], stream: true, max_tokens: 16 }
   let firstDelta
@@ -116,10 +125,16 @@ export async function probeModel(model, { apiKey, attributionUserAgent, load, si
     })
     return { state: STATE.available, latencyMs: Date.now() - started, ttftMs: firstDelta === undefined ? undefined : firstDelta - started }
   } catch (error) {
+    const waited = Date.now() - started
     return {
       state: stateOf(error),
-      detail: describeRefusal(error, load),
-      latencyMs: Date.now() - started,
+      // A probe that ran out of time is a different reading from a refusal:
+      // the gateway accepted the request and never answered it, which on a
+      // saturated pool is a queue, not a fault. Say so, and name the wait.
+      detail: error?.code === CODE.timeout && waited >= 40_000
+        ? `No first token after ${Math.round(waited / 1000)}s${isSaturated(load) ? `; the pool was at ${Math.round(load.utilization)}% when the probe started, so the request was most likely queued` : ''}. The gateway said: ${describeRefusal(error, load)}`
+        : describeRefusal(error, load),
+      latencyMs: waited,
     }
   }
 }
@@ -225,6 +240,8 @@ function stateOf(error) {
  * `options.load` may be a reading for one model or a resolver for the whole
  * map; it is resolved per model, immediately before that model's ping, so a
  * saturated model is recognised even when the fleet fills up mid-round.
+ * `options.preflight` is forwarded verbatim so a caller can publish a
+ * "this one is known busy" verdict before the slow leg of the round runs.
  *
  * @param {Array<object>} models
  * @param {object} options - forwarded to `probeModel` (needs `apiKey`)
