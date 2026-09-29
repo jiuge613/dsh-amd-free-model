@@ -27,7 +27,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { startFakeGateway, VALID_KEY, FLEET, PAID_MODEL } from './lib/fake-gateway.mjs'
+import { startFakeGateway, VALID_KEY, FLEET, PAID_MODEL, SATURATED_MODEL, QUOTA_MODEL } from './lib/fake-gateway.mjs'
 import { makeCtx, callRoute, waitFor } from './lib/fake-kernel.mjs'
 
 const API = '/api/amd-free-model'
@@ -156,7 +156,10 @@ async function main() {
   const withKey = await waitFor(async () => {
     const data = (await call('GET', '/summary')).json
     if (data?.settings?.key?.ok !== true) return null
-    const settled = data.catalog.every(model => model.availability === 'available' || model.availability === 'unavailable')
+    // `busy` is a settled verdict too: a saturated pool is an answer, not a
+    // model the round failed to reach.
+    const settledStates = ['available', 'unavailable', 'busy', 'throttled']
+    const settled = data.catalog.every(model => settledStates.includes(model.availability))
     return settled ? data : null
   }, { label: 'key verified and probe round settled' })
 
@@ -178,13 +181,27 @@ async function main() {
     assert.deepEqual(stale.map(model => model.id), [], 'these models still carry the pre-key verdict')
   })
 
-  await check('eight models probe available; the refused one leaves the picker', () => {
+  await check('routable models probe available; refused and saturated ones do not', () => {
     const available = withKey.catalog.filter(model => model.availability === 'available')
     const unavailable = withKey.catalog.filter(model => model.availability === 'unavailable')
-    assert.equal(available.length, 8)
+    const busy = withKey.catalog.filter(model => model.availability === 'busy')
+    const throttled = withKey.catalog.filter(model => model.availability === 'throttled')
+    // Nine fleet models, and the gateway refuses three of them for three
+    // different reasons: one rejects the chat wire outright, one pool is
+    // saturated, one key is over budget. All three stay advertised — a refused
+    // routing, a full pool and a spent quota are different problems with
+    // different fixes, and none of them is a reason to hide a model.
+    assert.equal(available.length, 6)
     assert.equal(unavailable.length, 1)
     assert.equal(unavailable[0].id, 'MinerU2.5-Pro', 'the non-chat lane must be the one refused')
     assert.equal(unavailable[0].route, null, 'a refused model is not advertised')
+    assert.equal(busy.length, 1)
+    assert.equal(busy[0].id, SATURATED_MODEL)
+    assert.equal(throttled.length, 1)
+    assert.equal(throttled[0].id, QUOTA_MODEL)
+    // Capacity and quota both keep the model reachable.
+    assert.equal(busy[0].route, 'amd-free-model')
+    assert.equal(throttled[0].route, 'amd-free-model')
     for (const model of available) assert.equal(model.route, 'amd-free-model')
   })
 
@@ -246,15 +263,49 @@ async function main() {
   })
 
   await check('429 maps to a non-retryable RATE_LIMIT failure', async () => {
+    // GLM 5.3 is a routable model this gateway never saturates, so its 429 is
+    // unambiguous: the key's own budget.
     const result = summarize(await drain(adapter.stream({
       provider: 'amd-free-model',
-      model: 'DeepSeek-V4-Flash',
+      model: 'GLM-5.3-Flash',
       messages: [{ role: 'user', content: 'quota exceeded please' }],
       sessionId: 'selftest-quota',
-    }, entryOf('DeepSeek-V4-Flash'))))
+    }, entryOf('GLM-5.3-Flash'))))
     assert.equal(result.finish?.kind, 'error')
     assert.equal(result.finish.failure.code, 'RATE_LIMIT')
     assert.equal(result.finish.failure.status, 429)
+  })
+
+  await check('a 429 from a saturated pool is reported as capacity, not quota', async () => {
+    // The gateway answers a full pool with the same 429 it uses for a spent
+    // key, so nothing in the status line separates them. The probe now reads
+    // AMD's own load endpoint: saturated reads `busy` (with a message naming
+    // the occupancy), and a real quota still reads `throttled`.
+    const { probeModel } = await import('../src/probe.js')
+    const model = { id: SATURATED_MODEL }
+
+    const saturated = await probeModel(model, {
+      apiKey: VALID_KEY,
+      load: { state: 'full', utilization: 100 },
+    })
+    assert.equal(saturated.state, 'busy')
+    assert.match(saturated.detail, /capacity/i, 'the message must not accuse the key')
+    assert.match(saturated.detail, /100%/, 'the message must carry the occupancy reading')
+
+    // A saturated model, a pool with headroom, and no reading at all: three
+    // different verdicts from the same 429. `probeModel` always sends the same
+    // `ping`, so the gateway keys its refusal on the model, and the test varies
+    // the load reading the plugin consults.
+    const spent = await probeModel({ id: QUOTA_MODEL }, {
+      apiKey: VALID_KEY,
+      load: { state: 'idle', utilization: 12 },
+    })
+    assert.equal(spent.state, 'throttled', 'a 429 with headroom is still the key budget')
+
+    // No load reading at all keeps the conservative reading rather than
+    // inventing saturation out of an absent measurement.
+    const unknown = await probeModel({ id: SATURATED_MODEL }, { apiKey: VALID_KEY })
+    assert.equal(unknown.state, 'throttled')
   })
 
   await check('effort levels become the max_tokens actually sent', async () => {
