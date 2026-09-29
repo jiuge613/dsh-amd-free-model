@@ -69,10 +69,11 @@ export const SATURATED_MODEL = 'Qwen3.8-27B'
 
 /**
  * A routable model the gateway also answers 429 for, but reports as `idle` with
- * headroom. It is the counterpart to {@link SATURATED_MODEL}: same status line,
- * opposite verdict, decided only by the load reading the plugin consults.
+ * headroom — a refusal with no saturation to point at. It is the counterpart to
+ * {@link SATURATED_MODEL}: same status line, and the plugin must still refuse to
+ * call either of them a quota, because the free section documents no allowance.
  */
-export const QUOTA_MODEL = 'GLM-5.3-Flash'
+export const UNEXPLAINED_429_MODEL = 'GLM-5.3-Flash'
 
 /**
  * Start the gateway.
@@ -166,7 +167,7 @@ export async function startFakeGateway(options = {}) {
       // as saturated, so the two signals describe the same world.
       models[SATURATED_MODEL] = { state: 'full', label: 'At capacity', utilization: 100 }
       // …and its counterpart answers the same 429 with headroom to spare.
-      models[QUOTA_MODEL] = { state: 'idle', label: 'Idle', utilization: 12 }
+      models[UNEXPLAINED_429_MODEL] = { state: 'idle', label: 'Idle', utilization: 12 }
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ models, scope: 'fleet' }))
       return
@@ -207,7 +208,7 @@ export async function startFakeGateway(options = {}) {
         // the whole reason the plugin consults its own load endpoint before
         // believing a 429 is about the caller's quota. Keyed on the model so
         // the probe's own `ping` prompt can drive it.
-        if (prompt.includes('saturated') || body.model === SATURATED_MODEL || body.model === QUOTA_MODEL) {
+        if (prompt.includes('saturated') || body.model === SATURATED_MODEL || body.model === UNEXPLAINED_429_MODEL) {
           res.writeHead(429, { 'content-type': 'application/json', 'retry-after': '3' })
           res.end(JSON.stringify({ error: { message: 'no capacity available for this model', type: 'rate_limit_error' } }))
           return
