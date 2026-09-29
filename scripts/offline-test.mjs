@@ -327,25 +327,28 @@ async function main() {
   })
 
   // ── probe verdicts ────────────────────────────────────────────────────────
-  await check('the probe state vocabulary has no region verdict', () => {
+  await check('the probe state vocabulary has no quota verdict', () => {
+    // AMD publishes no per-user allowance for the free section — every model
+    // card says "Free to use. Points show relative usage—not a charge" and the
+    // page carries no rate-limit or quota terms. So the plugin must not offer a
+    // "quota reached" badge: it would accuse the user's account of something
+    // the service does not document.
     assert.deepEqual(
       Object.values(STATE).sort(),
-      ['available', 'busy', 'no-key', 'throttled', 'unknown', 'unavailable'].sort(),
+      ['available', 'busy', 'no-key', 'unavailable', 'unknown'].sort(),
     )
+    assert.equal(STATE.throttled, undefined)
     assert.equal(STATE.regionBlocked, undefined)
   })
 
-  await check('a saturated pool is told apart from an exhausted key', () => {
-    // AMD's own load endpoint publishes `state: 'full'` at 100%. A 429 arriving
-    // while that reads saturated is capacity, not the caller's quota — and the
-    // badge has to say so, because the two clear by opposite means: one on its
-    // own in minutes, the other not at all until the quota resets.
+  await check('saturation is read for wording, not for the verdict', () => {
+    // A 429 is the fleet declining, whatever the load endpoint said at that
+    // instant. The reading only decides whether the page can name the pool or
+    // has to admit the gateway did not say.
     assert.equal(isSaturated({ state: 'full', utilization: 100 }), true)
     assert.equal(isSaturated({ state: 'busy', utilization: 99.9 }), true, '99%+ is full in everything but the label')
     assert.equal(isSaturated({ state: 'busy', utilization: 72.4 }), false)
     assert.equal(isSaturated({ state: 'idle', utilization: 4 }), false)
-    // No reading is not evidence of saturation: absence keeps the conservative
-    // reading, because asserting capacity from no data is the same mistake.
     assert.equal(isSaturated(undefined), false)
     assert.equal(isSaturated(null), false)
     assert.equal(isSaturated({}), false)
