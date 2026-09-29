@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "updated": "2026-09-29T00:00:00Z",
+  "items": [
+    {
+      "id": "amd-free-model-0-1-0",
+      "level": "info",
+      "title": "AMD Free Model 0.1.0 发布",
+      "body": "<p>每日自动探测 AMD Radeon Token Factory 的<b>免费模型</b>清单，AMD 付费区的模型一律不接入。</p><ul><li>只读免费区 <code>public_free</code>；遇到付费分区或未知分区直接拒绝整份目录</li><li>每模型详情再判一次分区，付费卡即使混入也被剔除并列出</li><li>默认每 1440 分钟（一天）刷新一次，可按需调小</li><li>填一个 API Key 即可使用 DeepSeek V4、MiMo V2.6、Qwen3.8、GLM 5.3</li><li>Token 看板与 OpenAI 兼容本地转发端口</li></ul><p>Key 只保存在本机，不会上传。</p>",
+      "published": "2026-09-29T00:00:00Z"
+    }
+  ]
+}
