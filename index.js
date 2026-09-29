@@ -347,6 +347,17 @@ export function apply(ctx, config) {
       emitTopology()
       return {}
     }
+    // Void the previous round's per-model verdicts before probing.
+    //
+    // `probeCatalog` only reports a model it actually reached, so a model this
+    // round never got to keeps the row it had — and a user who just pasted a
+    // key would keep seeing the *pre-key* verdict ("待填 Key" on every card)
+    // next to a key badge that says valid, with nothing in the log to explain
+    // the contradiction. The two were written by different rounds: the key row
+    // by this one, the stale model rows by the one before it. Clearing them
+    // first makes a not-yet-probed model read `unknown` ("not probed"), which
+    // is the truth, instead of a confident answer about a state that ended.
+    availability.update({ results: {} })
     const results = await probeCatalog(catalog, { apiKey, attributionUserAgent }, (id, result) => {
       availability.edit(state => ({ ...state, results: { ...state.results, [id]: { state: result.state, ...result.detail === undefined ? {} : { detail: result.detail }, ...result.ttftMs === undefined ? {} : { ttftMs: result.ttftMs }, latencyMs: result.latencyMs, at: Date.now() } } }))
     }, 2)
