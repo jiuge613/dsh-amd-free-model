@@ -304,6 +304,31 @@ async function main() {
     assert.equal(unknown.state, 'busy')
     assert.match(unknown.detail, /no saturation reading/i)
 
+    // The preflight: a model the load endpoint already calls full is announced
+    // *before* its ping runs, so the page shows "busy" immediately instead of
+    // after the queue ahead of it drains. The ping still runs — capacity can
+    // free up mid-round, and a model that answers must be reported available
+    // rather than assumed busy.
+    const announced = []
+    const preflighted = await probeModel({ id: SATURATED_MODEL }, {
+      apiKey: VALID_KEY,
+      load: { state: 'full', utilization: 100 },
+      preflight: (id, load) => announced.push({ id, load }),
+    })
+    assert.equal(announced.length, 1, 'a saturated model must be announced up front')
+    assert.equal(announced[0].id, SATURATED_MODEL)
+    assert.equal(announced[0].load.utilization, 100)
+    assert.equal(preflighted.state, 'busy')
+
+    // A model with headroom is not announced: there is nothing to say early.
+    const notAnnounced = []
+    await probeModel({ id: UNEXPLAINED_429_MODEL }, {
+      apiKey: VALID_KEY,
+      load: { state: 'busy', utilization: 40 },
+      preflight: (id) => notAnnounced.push(id),
+    })
+    assert.deepEqual(notAnnounced, [], 'a model with headroom must not be pre-announced')
+
     assert.equal(STATE.throttled, undefined, 'a quota verdict must not exist')
   })
 
