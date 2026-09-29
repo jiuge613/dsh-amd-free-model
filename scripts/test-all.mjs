@@ -23,6 +23,12 @@ const SUITES = [
   { script: 'scripts/offline-test.mjs', timeoutMs: 60_000 },
   { script: 'scripts/client-lint.mjs', timeoutMs: 60_000 },
   { script: 'scripts/build-manifest.mjs', args: ['--check'], timeoutMs: 30_000 },
+  // Reads the committed manifest through the updater's own parser. The other
+  // suites compare the manifest against the bytes on disk, which passes
+  // perfectly while the consumer of that very document cannot read a single
+  // entry — exactly how a `bytes`/`size` field mismatch shipped and left the
+  // in-app upgrade permanently broken.
+  { script: 'scripts/updater-contract-test.mjs', timeoutMs: 60_000 },
   { script: 'scripts/host-selftest.mjs', timeoutMs: 120_000 },
   // Its own process by necessity: the AMD origin is a module-load constant, so
   // testing the paid section needs a process that never loaded the free one.
