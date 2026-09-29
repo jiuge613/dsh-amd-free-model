@@ -167,6 +167,17 @@ async function main() {
     assert.ok(!JSON.stringify(withKey).includes(VALID_KEY), 'the raw key must never appear in a summary')
   })
 
+  await check('no model keeps a stale pre-key verdict after the key is saved', () => {
+    // Regression: a user who pasted a key saw "待填 Key" on every card next to
+    // a "Key 有效" badge. The key row came from the new round while the
+    // per-model rows still held the previous round's `no-key`, because
+    // `probeCatalog` only reports a model it actually reached. A round now
+    // voids the old verdicts before probing, so anything not reached reads
+    // `unknown` ("not probed") rather than a confident stale answer.
+    const stale = withKey.catalog.filter(model => model.availability === 'no-key')
+    assert.deepEqual(stale.map(model => model.id), [], 'these models still carry the pre-key verdict')
+  })
+
   await check('eight models probe available; the refused one leaves the picker', () => {
     const available = withKey.catalog.filter(model => model.availability === 'available')
     const unavailable = withKey.catalog.filter(model => model.availability === 'unavailable')
