@@ -136,11 +136,16 @@ function parseFileEntry(row) {
   }
   const sha256 = typeof row?.sha256 === 'string' ? row.sha256.toLowerCase() : ''
   if (!SHA_RE.test(sha256)) throw new Error(`manifest entry "${normalized}" has no valid sha256`)
-  const size = row?.size
-  if (!Number.isInteger(size) || size <= 0 || size > MAX_FILE_BYTES) {
+  // `bytes` is this package's spelling (it mirrors the builder and the test
+  // suite); `size` is accepted as the fallback a hand-written or older
+  // manifest may carry. Reading only one of them made every entry look
+  // out-of-range — the field was simply absent, not wrong — which surfaced as
+  // "no manifest source answered" and left the in-app upgrade permanently dead.
+  const declared = row?.bytes ?? row?.size
+  if (!Number.isInteger(declared) || declared <= 0 || declared > MAX_FILE_BYTES) {
     throw new Error(`manifest entry "${normalized}" has an out-of-range size`)
   }
-  return { path: normalized, sha256, size }
+  return { path: normalized, sha256, size: declared }
 }
 
 function timestampOf(value) {
