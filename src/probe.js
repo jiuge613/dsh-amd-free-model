@@ -27,15 +27,28 @@
 import { CODE, getApi, postStreamed } from './http.js'
 import { modelsUrl } from './upstream.js'
 
-/** Verdicts the probe can return, and how each maps to picker membership. */
+/**
+ * Verdicts the probe can return, and how each maps to picker membership.
+ *
+ * There is no "quota exceeded" verdict, and that is a finding rather than an
+ * omission. AMD publishes no per-user allowance for the free section: every
+ * model card states "Free to use. Points show relative usage—not a charge",
+ * the load endpoint is the only capacity signal it exposes, and the page
+ * carries no rate-limit, fair-use or quota terms at all. The only refusal the
+ * free lane is observed to produce is a 429 raised while the model's pool is
+ * saturated — and which models are saturated changes minute to minute.
+ *
+ * So every 429 is reported as what can actually be claimed about it: the
+ * fleet would not take this request right now. A separate per-user limit, if
+ * AMD ever introduces one, is an undocumented behaviour change — the raw
+ * status and body are still recorded on the row, so it shows up in the log
+ * rather than being guessed at in the badge.
+ */
 export const STATE = {
   available: 'available',
   unavailable: 'unavailable',
-  /** 429 while AMD's own load endpoint reports the pool saturated. Capacity,
-   *  not the key's quota: it clears by itself, so the model stays advertised. */
+  /** The fleet refused this request (429) while the model was unavailable. */
   busy: 'busy',
-  /** 429 with the fleet reporting headroom — the key's own budget. */
-  throttled: 'throttled',
   noKey: 'no-key',
   unknown: 'unknown',
 }
@@ -104,7 +117,7 @@ export async function probeModel(model, { apiKey, attributionUserAgent, load, si
     return { state: STATE.available, latencyMs: Date.now() - started, ttftMs: firstDelta === undefined ? undefined : firstDelta - started }
   } catch (error) {
     return {
-      state: stateOf(error, load),
+      state: stateOf(error),
       detail: describeRefusal(error, load),
       latencyMs: Date.now() - started,
     }
@@ -134,19 +147,14 @@ export async function probeModel(model, { apiKey, attributionUserAgent, load, si
 const ROUTING_REFUSAL_STATUS = new Set([400, 404, 422])
 
 /**
- * Is this model's compute pool saturated right now?
+ * How saturated is this model's pool right now?
  *
  * AMD's own load endpoint publishes exactly this: `state: 'full'` at 100%
- * utilization. A 429 arriving while the pool reads `full` is almost never the
- * user's key quota — it is the fleet turning away work because the GPUs are all
- * busy, which clears on its own in minutes and costs the user nothing to wait
- * out. Calling that a quota says something false about *their* account, and
- * (before this check existed) it is what put a red "已达限额" badge on models
- * that were merely saturated.
- *
- * A missing or stale reading is not evidence either way, so it keeps the
- * conservative reading (quota) — asserting saturation from no data would be the
- * same mistake one level down.
+ * utilization, `busy` above 60%, `idle` below. It is read for the *wording* of
+ * a refusal, not for the verdict: on this lane a 429 means the fleet would not
+ * take the request, and the reading only decides whether the settings page can
+ * say "the pool is full" or has to say "the gateway declined without saying
+ * why" — an honest admission rather than an invented quota.
  *
  * @param {{state: string, utilization: number}|undefined} load
  * @returns {boolean}
@@ -162,23 +170,35 @@ export function isSaturated(load) {
 /**
  * The sentence the settings page shows under a refused model.
  *
- * The distinction the badge cannot make: a saturated fleet and an exhausted key
- * look identical in a status code, and the remedy is the opposite — the first
- * clears by itself, the second does not.
+ * Two claims, kept apart on purpose. When the load endpoint says the pool is
+ * full, that is a fact about the fleet and it clears by itself. When the
+ * gateway refuses with no saturation to point at, the plugin says exactly that
+ * — it does not reach for "your quota ran out", because the free section
+ * publishes no per-user allowance for that to be true of.
+ *
+ * @param {object} error - the classified failure
+ * @param {{state: string, utilization: number}|undefined} load
+ * @returns {string}
  */
 function describeRefusal(error, load) {
   const base = typeof error?.message === 'string' && error.message !== '' ? error.message : String(error)
-  if (error?.code === CODE.quota && isSaturated(load)) {
-    const percent = typeof load?.utilization === 'number' ? Math.round(load.utilization) : null
-    const reading = percent === null ? 'currently at capacity' : `currently at ${percent}% utilization`
-    return `AMD's compute pool for this model is ${reading} (fleet load: ${load.state}). This is capacity, not your key's quota — it usually clears within minutes. The gateway said: ${base}`
+  if (error?.code !== CODE.quota) return base
+  const percent = typeof load?.utilization === 'number' ? Math.round(load.utilization) : null
+  if (isSaturated(load)) {
+    const reading = percent === null ? 'at capacity' : `at ${percent}% utilization`
+    return `AMD's compute pool for this model is ${reading} (fleet load: ${load.state}). This is fleet capacity, not an allowance on your account — it usually clears within minutes. The gateway said: ${base}`
   }
-  return base
+  const observed = load === undefined
+    ? 'no saturation reading was available'
+    : `the fleet reported ${load.state}${percent === null ? '' : ` at ${percent}%`} for it`
+  return `The gateway declined this request (HTTP 429) and ${observed}. The free section publishes no per-user allowance, so this is reported as capacity rather than a quota. The gateway said: ${base}`
 }
 
-function stateOf(error, load) {
+function stateOf(error) {
   switch (error?.code) {
-    case CODE.quota: return isSaturated(load) ? STATE.busy : STATE.throttled
+    // Every 429 on this lane is the fleet declining, whatever the load
+    // endpoint happened to say at that instant — see the STATE note.
+    case CODE.quota: return STATE.busy
     case CODE.credential: return STATE.unknown
     default: break
   }
