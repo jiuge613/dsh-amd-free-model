@@ -1,0 +1,40 @@
+name: test
+
+# Every suite here is offline: the fake gateway in scripts/lib stands in for
+# the live AMD service, so CI never needs a key and never spends one. The one
+# thing these runs protect beyond correctness is the release manifest — a
+# commit that changes a shipped file without regenerating feed/manifest.json
+# fails here rather than in a user's in-app upgrade.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  offline:
+    name: node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # No `npm ci`: the package has zero dependencies and no install step.
+      # nullglob matters: without it an unmatched pattern is passed to
+      # node --check as a literal path and the step fails on a clean tree.
+      - name: syntax check
+        shell: bash
+        run: |
+          set -e
+          shopt -s nullglob
+          files=(index.js client.js src/*.js adapter/*.js scripts/*.mjs scripts/lib/*.mjs)
+          for f in "${files[@]}"; do node --check "$f"; done
+          echo "checked ${#files[@]} files"
+      - name: full offline suite
+        run: node scripts/test-all.mjs
