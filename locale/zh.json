@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "AMD Free Model",
+    "description": "在 DeepSeek Harness 内直连 AMD Radeon Token Factory：填一个 API Key，即可使用 AMD GPU Cloud 上的免费模型；目录随上游刷新、可用性自动探测、思考强度档位真实生效，并附 Token 用量看板与 OpenAI 兼容的本地转发端口。"
+  }
+}
