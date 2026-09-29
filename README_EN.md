@@ -64,8 +64,8 @@
 
 ### Desktop (recommended)
 
-1. Open **Settings → Plugins**;
-2. Paste the repository URL into the add-plugin field:
+1. Open the **left navigation → Plugins**;
+2. Paste the repository URL into the input field:
 
    ```
    https://github.com/jiuge613/dsh-amd-free-model
