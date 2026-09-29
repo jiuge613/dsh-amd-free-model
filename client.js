@@ -117,6 +117,10 @@ window.__ModuleLoader__.load({
         'forward.host': '监听地址',
         'forward.port': '端口',
         'forward.apply': '应用',
+        'settings.saved': '已保存',
+        'settings.saving': '保存中…',
+        'settings.savedForward': '转发设置已保存',
+        'settings.savedPrefs': '插件设置已保存',
         'settings.failed': '设置未保存',
         'forward.running': '正在监听',
         'forward.stopped': '未启用',
@@ -302,6 +306,10 @@ window.__ModuleLoader__.load({
         'forward.host': 'Bind address',
         'forward.port': 'Port',
         'forward.apply': 'Apply',
+        'settings.saved': 'Saved',
+        'settings.saving': 'Saving…',
+        'settings.savedForward': 'Forward settings saved',
+        'settings.savedPrefs': 'Plugin settings saved',
         'settings.failed': 'Settings not saved',
         'forward.running': 'Listening',
         'forward.stopped': 'Off',
@@ -440,6 +448,10 @@ window.__ModuleLoader__.load({
 .ofm_badge.unknown{color:var(--dsw-alias-label-tertiary)}
 .ofm_link{font-size:12px;color:var(--dsw-alias-state-business-primary);text-decoration:none;white-space:nowrap;padding:0 6px;align-self:center}
 .ofm_link:hover{text-decoration:underline}
+/* The outcome of a settings save. The values a click writes are already on
+   screen, so without this the button reads as inert. */
+.ofm_note.ofm_ok{color:var(--dsw-alias-state-success-primary)}
+.ofm_note.ofm_err{color:var(--dsw-alias-state-error-primary)}
 .ofm_id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ofm_tags{display:flex;gap:5px;flex-wrap:wrap}
 .ofm_tag{font-size:10.5px;padding:2px 7px;border-radius:6px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary)}
@@ -1218,7 +1230,7 @@ window.__ModuleLoader__.load({
 
     // ── forward listener ──────────────────────────────────────────────────────
     function Forward(props) {
-      const { settings, t, onApply, busy } = props
+      const { settings, t, onApply, busy, applied } = props
       const [draft, setDraft] = useState(settings.forward)
       useEffect(() => setDraft(settings.forward), [settings.forward?.enabled, settings.forward?.host, settings.forward?.port])
       const [key, setKey] = useState('')
@@ -1246,7 +1258,16 @@ window.__ModuleLoader__.load({
         h('div', { className: 'ofm_row' },
           field(t('forward.host'), h('input', { className: 'ofm_input', style: { maxWidth: 150 }, value: draft?.host ?? '127.0.0.1', onChange: e => setDraft(c => ({ ...c, host: e.target.value })) })),
           field(t('forward.port'), h('input', { className: 'ofm_input', style: { maxWidth: 110 }, inputMode: 'numeric', value: draft?.port ?? '', onChange: e => setDraft(c => ({ ...c, port: Number(e.target.value.replace(/\D/g, '')) || 0 })) })),
-          h(Button, { kind: 'primary', disabled: busy || draft?.enabled === undefined, onClick: () => onApply({ forward: { enabled: draft.enabled === true, host: draft.host, port: draft.port } }) }, t('forward.apply'))),
+          h(Button, {
+            kind: 'primary',
+            disabled: busy || draft?.enabled === undefined,
+            onClick: () => onApply({ forward: { enabled: draft.enabled === true, host: draft.host, port: draft.port } }, t('settings.savedForward')),
+          }, busy ? t('settings.saving') : t('forward.apply'))),
+        // The round trip is invisible otherwise: the values the click wrote are
+        // already on screen, so nothing appears to have happened.
+        applied
+          ? h('p', { className: applied === t('settings.failed') ? 'ofm_note ofm_err' : 'ofm_note ofm_ok' }, applied)
+          : null,
         draft?.error ? h('div', { className: 'ofm_callout ofm_error' }, t('forward.error').replace('{message}', draft.error)) : null,
         draft?.running === true ? h(Fragment, null,
           h('div', { className: 'ofm_row' },
@@ -1268,17 +1289,24 @@ window.__ModuleLoader__.load({
 
     // ── preferences ───────────────────────────────────────────────────────────
     function Preferences(props) {
-      const { summary, t, onApply, busy } = props
+      const { summary, t, onApply, busy, applied } = props
       const settings = summary.settings
       const [draft, setDraft] = useState(settings)
       useEffect(() => setDraft(settings), [summary])
       return h(Panel, null,
         h('div', { className: 'ofm_row', style: { gap: 20 } },
-          h(Switch, { checked: settings.enabled !== false, label: t('pref.enabled'), onChange: () => onApply({ enabled: !(settings.enabled !== false) }) })),
+          h(Switch, { checked: settings.enabled !== false, label: t('pref.enabled'), onChange: () => onApply({ enabled: !(settings.enabled !== false) }, t('settings.savedPrefs')) })),
         h('div', { className: 'ofm_row' },
           field(t('pref.interval'), h('input', { className: 'ofm_input', style: { maxWidth: 100 }, value: draft?.probeIntervalMinutes ?? 1440, onChange: e => setDraft(c => ({ ...c, probeIntervalMinutes: Number(e.target.value.replace(/\D/g, '')) || 0 })) })),
           field(t('pref.maxTokens'), h('input', { className: 'ofm_input', style: { maxWidth: 120 }, value: draft?.defaultMaxTokens ?? 32768, onChange: e => setDraft(c => ({ ...c, defaultMaxTokens: Number(e.target.value.replace(/\D/g, '')) || 0 })) })),
-          h(Button, { kind: 'primary', disabled: busy, onClick: () => onApply({ probeIntervalMinutes: draft.probeIntervalMinutes, defaultMaxTokens: draft.defaultMaxTokens }) }, t('forward.apply'))),
+          h(Button, {
+            kind: 'primary',
+            disabled: busy,
+            onClick: () => onApply({ probeIntervalMinutes: draft.probeIntervalMinutes, defaultMaxTokens: draft.defaultMaxTokens }, t('settings.savedPrefs')),
+          }, busy ? t('settings.saving') : t('forward.apply'))),
+        applied
+          ? h('p', { className: applied === t('settings.failed') ? 'ofm_note ofm_err' : 'ofm_note ofm_ok' }, applied)
+          : null,
         h('div', { className: 'ofm_row', style: { gap: 8 } },
           h('span', { className: 'ofm_pill' }, `${t('pref.key')}: ${keyStatusPill(settings, t)}`),
           h('span', { className: 'ofm_pill' }, `${t('pref.probedAt')}: ${ago(summary.probedAt, t.locale)}`)))
@@ -1496,14 +1524,24 @@ window.__ModuleLoader__.load({
       const summary = useAsync(() => api('/summary'), [])
       const stats = useAsync(() => api('/stats'), [])
 
-      const apply = async patch => {
+      // Settings are applied by POST, and the page is re-read afterwards — so
+      // without a confirmation the button looks inert: the values it wrote are
+      // already on screen, which is indistinguishable from the click having
+      // done nothing. Every apply therefore ends in a visible outcome, success
+      // or failure, and the button says which is in progress.
+      const [applied, setApplied] = useState('')
+      const apply = async (patch, message) => {
         setBusy(true)
+        setApplied('')
         try {
           await post('/settings', patch)
           summary.reload(); stats.reload()
+          setApplied(message ?? t('settings.saved'))
+          showToast({ title: t('settings.saved'), body: message ?? '', tone: 'ok' })
         } catch (error) {
           // The route can refuse a patch — a routable forward bind, for one — and a
           // rejection nobody shows is a button that appears to do nothing.
+          setApplied(t('settings.failed'))
           showToast({ title: t('settings.failed'), body: String(error?.message ?? error), tone: 'warn' })
         } finally { setBusy(false) }
       }
@@ -1550,8 +1588,8 @@ window.__ModuleLoader__.load({
         h(Section, { title: t('section.dash'), hint: t('section.dashHint') },
           stats.status === 'ready' && stats.data !== undefined ? h(Dashboard, { stats: stats.data, summary: data, t: tagged })
             : h('p', { className: 'ofm_note' }, t('loading'))),
-        h(Section, { title: t('section.forward'), hint: t('section.forwardHint') }, h(Forward, { settings: data.settings, t: tagged, onApply: apply, busy })),
-        h(Section, { title: t('section.prefs'), hint: t('section.prefsHint') }, h(Preferences, { summary: data, t: tagged, onApply: apply, busy })),
+        h(Section, { title: t('section.forward'), hint: t('section.forwardHint') }, h(Forward, { settings: data.settings, t: tagged, onApply: apply, busy, applied })),
+        h(Section, { title: t('section.prefs'), hint: t('section.prefsHint') }, h(Preferences, { summary: data, t: tagged, onApply: apply, busy, applied })),
         h(Section, { title: t('section.upgrade'), hint: t('section.upgradeHint') }, h(UpgradePanel, { t: tagged, settings: data.settings, onApply: apply, busy })))
     }
 
