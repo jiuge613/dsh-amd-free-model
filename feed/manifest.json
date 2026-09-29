@@ -1,7 +1,7 @@
 {
   "name": "dsh-amd-free-model",
   "version": "0.1.0",
-  "generatedAt": "2026-09-29T16:29:18Z",
+  "generatedAt": "2026-09-29T17:09:48Z",
   "files": [
     {
       "path": "LICENSE",
@@ -30,8 +30,8 @@
     },
     {
       "path": "client.js",
-      "bytes": 114669,
-      "sha256": "64d707a1731ed9d656769ccc3ba3cc3bf995eba64c9995ce53bff25f91538e75"
+      "bytes": 114749,
+      "sha256": "33dca9e9ba6ba9d8fd1788182a61465308c6877bdcb4b4b61178900a23792831"
     },
     {
       "path": "cordis.patch.yml",
@@ -45,8 +45,8 @@
     },
     {
       "path": "index.js",
-      "bytes": 66041,
-      "sha256": "87dedfe84b6bcc55793cada8a92d82ee04d98ced0397cee1cc8c9bd9b7e8f65f"
+      "bytes": 66457,
+      "sha256": "0f7d6abcc5e6d6c9bfd0afe330914b121673b69acf0a59784efc5f5a97261ae8"
     },
     {
       "path": "locale/en.json",
@@ -105,8 +105,8 @@
     },
     {
       "path": "src/probe.js",
-      "bytes": 7202,
-      "sha256": "3d001bacdd4a39ac108efd78d5e58efc135bb877d18066700e8777122997a98f"
+      "bytes": 10062,
+      "sha256": "abeddc4d208b707e50e91689972de12671a597a7196ab53b9657c7094042fd80"
     },
     {
       "path": "src/push.js",
