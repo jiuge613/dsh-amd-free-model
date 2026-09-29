@@ -1,7 +1,7 @@
 {
   "name": "dsh-amd-free-model",
   "version": "0.1.1",
-  "generatedAt": "2026-09-29T18:20:27Z",
+  "generatedAt": "2026-09-29T18:44:27Z",
   "files": [
     {
       "path": "LICENSE",
@@ -45,8 +45,8 @@
     },
     {
       "path": "index.js",
-      "bytes": 66457,
-      "sha256": "0f7d6abcc5e6d6c9bfd0afe330914b121673b69acf0a59784efc5f5a97261ae8"
+      "bytes": 67141,
+      "sha256": "764756c79d64c72b46032a127553c5b80da180ffed6264a230b216b3b1f98f59"
     },
     {
       "path": "locale/en.json",
@@ -95,8 +95,8 @@
     },
     {
       "path": "src/http.js",
-      "bytes": 17786,
-      "sha256": "5a7588902282e554dcdfc089a355ca42d99c8dbfb422a4f3d5a69b944a2266bb"
+      "bytes": 18903,
+      "sha256": "4292f2248c27f5cc80d569028f2a209e850a0f0cc95d1e938be8a2b9c4b9e3ca"
     },
     {
       "path": "src/messages.js",
@@ -105,8 +105,8 @@
     },
     {
       "path": "src/probe.js",
-      "bytes": 11302,
-      "sha256": "de1ee887ed4b6ae612ca4a119cc5576521d7fb81810f9cac875f2c4717c8cd57"
+      "bytes": 12670,
+      "sha256": "733258e29ff9f19420d5a5560ac76597e09bd4d5b7e3e546105026be82797b3b"
     },
     {
       "path": "src/push.js",
