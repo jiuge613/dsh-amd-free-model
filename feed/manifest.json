@@ -1,7 +1,7 @@
 {
   "name": "dsh-amd-free-model",
-  "version": "0.1.0",
-  "generatedAt": "2026-09-29T17:46:30Z",
+  "version": "0.1.1",
+  "generatedAt": "2026-09-29T18:04:23Z",
   "files": [
     {
       "path": "LICENSE",
@@ -10,13 +10,13 @@
     },
     {
       "path": "README.md",
-      "bytes": 15016,
-      "sha256": "2d2e43b6aecce55757c422f2dc74f9047bb5a453e1a7b1cb61117a93ab1a6a75"
+      "bytes": 15009,
+      "sha256": "d18466a0fa1c69d137613d9ac6179765989158c789ccdff498a3674f98c429d6"
     },
     {
       "path": "README_EN.md",
-      "bytes": 15686,
-      "sha256": "1388fb56afa5da49a4b000d1f2fde2fab60021b6ae300dd9e47d4b22532cdda5"
+      "bytes": 15692,
+      "sha256": "cf5e6c0e98e5debbeda0ec8a32043ec37c3d881d426d144d6463d7a8c4df739f"
     },
     {
       "path": "adapter/dsh-llm.d.ts",
@@ -61,7 +61,7 @@
     {
       "path": "package.json",
       "bytes": 1739,
-      "sha256": "7b7f029c1387d2736dbc23a077fd1a61d31db2d0b3b2b148ccfcf3a0a2c46990"
+      "sha256": "3d17cefd787c56a86f31be5ef05b52c203a38fd33e9f5f14919e1b8a4c5b5fc8"
     },
     {
       "path": "src/adapter.js",
