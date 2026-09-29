@@ -1,13 +1,18 @@
 {
-  "schema": 1,
-  "updated": "2026-09-29T00:00:00Z",
-  "items": [
+  "announcements": [
+    {
+      "id": "amd-free-model-0-1-1",
+      "level": "update",
+      "title": "AMD Free Model 0.1.1：修复应用内升级、公告中心与设置反馈",
+      "html": "<p>三个实际问题的修复：</p><ul><li><b>应用内升级恢复可用</b>——发布清单写的是 <code>bytes</code> 字段，升级器读的是 <code>size</code>，导致每个条目都被判为「大小越界」而全部源失败。现在两种拼写都接受。</li><li><b>公告中心接通</b>——此前的 feed 文档字段名与解析器约定不一致，公告内容被整份丢弃。现在按实际契约发布。</li><li><b>设置保存有反馈</b>——本地转发与插件设置的「应用」按钮此前只在失败时提示，成功后界面毫无变化；现在两个面板都会显示保存结果。</li></ul><p>另外，本版本起 429 一律显示为「繁忙，稍后重试」：AMD 免费区没有用户配额，插件不再把算力繁忙说成「已达限额」。</p>",
+      "createdAt": "2026-09-29T18:00:00Z"
+    },
     {
       "id": "amd-free-model-0-1-0",
       "level": "info",
       "title": "AMD Free Model 0.1.0 发布",
-      "body": "<p>每日自动探测 AMD Radeon Token Factory 的<b>免费模型</b>清单，AMD 付费区的模型一律不接入。</p><ul><li>只读免费区 <code>public_free</code>；遇到付费分区或未知分区直接拒绝整份目录</li><li>每模型详情再判一次分区，付费卡即使混入也被剔除并列出</li><li>默认每 1440 分钟（一天）刷新一次，可按需调小</li><li>填一个 API Key 即可使用 DeepSeek V4、MiMo V2.6、Qwen3.8、GLM 5.3</li><li>Token 看板与 OpenAI 兼容本地转发端口</li></ul><p>Key 只保存在本机，不会上传。</p>",
-      "published": "2026-09-29T00:00:00Z"
+      "html": "<p>每日自动探测 AMD Radeon Token Factory 的<b>免费模型</b>清单，AMD 付费区的模型一律不接入。</p><ul><li>只读免费区 <code>public_free</code>；遇到付费分区或未知分区直接拒绝整份目录</li><li>每个模型的详情文档再判一次分区，付费卡即使混入也被剔除并在设置页列出</li><li>默认每 1440 分钟（一天）刷新一次，可按需调小</li><li>填一个 API Key 即可使用 DeepSeek V4、MiMo V2.6、Qwen3.8、GLM 5.3</li><li>Token 看板与 OpenAI 兼容本地转发端口</li></ul><p>Key 只保存在本机，不会上传。</p>",
+      "createdAt": "2026-09-29T15:00:00Z"
     }
   ]
 }
