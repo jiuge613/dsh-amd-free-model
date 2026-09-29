@@ -364,9 +364,18 @@ export function apply(ctx, config) {
     // "the GPUs are full" apart from "your key is spent", and those two can
     // flip within a single round.
     await refreshLoad()
-    const results = await probeCatalog(catalog, { apiKey, attributionUserAgent, load: id => availability.get().load?.[id] }, (id, result) => {
+    const recordVerdict = (id, result) => {
       availability.edit(state => ({ ...state, results: { ...state.results, [id]: { state: result.state, ...result.detail === undefined ? {} : { detail: result.detail }, ...result.ttftMs === undefined ? {} : { ttftMs: result.ttftMs }, latencyMs: result.latencyMs, at: Date.now() } } }))
-    }, 2)
+    }
+    // A model the load endpoint already calls full is announced before its ping
+    // runs, so the settings page shows "busy" at once instead of after the
+    // queue ahead of it drains. The ping still runs: capacity can free up
+    // mid-round, and one that answers is reported available.
+    const announceSaturated = (id, load) => {
+      recordVerdict(id, { state: STATE.busy, detail: `AMD's compute pool for this model is at ${Math.round(load.utilization)}% (fleet load: ${load.state}), so the request is queued. The ping still runs in case capacity frees up.`, latencyMs: 0 })
+      emitTopology()
+    }
+    const results = await probeCatalog(catalog, { apiKey, attributionUserAgent, load: id => availability.get().load?.[id], preflight: announceSaturated }, recordVerdict, 2)
     availability.update({ at: Date.now() })
     availability.flush()
     // Say it out loud when a round refuses everything: `computeMembership` keeps
