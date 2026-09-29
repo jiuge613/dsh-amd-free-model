@@ -17,7 +17,7 @@ import { readStream, finishReason, mapUsage } from '../src/stream.js'
 import { budgetFor, resolveLevel, LEVELS, DEFAULT_LEVEL } from '../src/effort.js'
 import { sniffBody, classifyFailure, CODE } from '../src/http.js'
 import { siteHeaders, apiHeaders, baseModelId, wireFor, endpointFor, shapeChatTools } from '../src/upstream.js'
-import { STATE } from '../src/probe.js'
+import { STATE, isSaturated } from '../src/probe.js'
 import { rejectionFor, structuralRejection, isLoopbackHost } from '../src/trust.js'
 
 let passed = 0
@@ -328,8 +328,27 @@ async function main() {
 
   // ── probe verdicts ────────────────────────────────────────────────────────
   await check('the probe state vocabulary has no region verdict', () => {
-    assert.deepEqual(Object.values(STATE).sort(), ['available', 'no-key', 'throttled', 'unknown', 'unavailable'].sort())
+    assert.deepEqual(
+      Object.values(STATE).sort(),
+      ['available', 'busy', 'no-key', 'throttled', 'unknown', 'unavailable'].sort(),
+    )
     assert.equal(STATE.regionBlocked, undefined)
+  })
+
+  await check('a saturated pool is told apart from an exhausted key', () => {
+    // AMD's own load endpoint publishes `state: 'full'` at 100%. A 429 arriving
+    // while that reads saturated is capacity, not the caller's quota — and the
+    // badge has to say so, because the two clear by opposite means: one on its
+    // own in minutes, the other not at all until the quota resets.
+    assert.equal(isSaturated({ state: 'full', utilization: 100 }), true)
+    assert.equal(isSaturated({ state: 'busy', utilization: 99.9 }), true, '99%+ is full in everything but the label')
+    assert.equal(isSaturated({ state: 'busy', utilization: 72.4 }), false)
+    assert.equal(isSaturated({ state: 'idle', utilization: 4 }), false)
+    // No reading is not evidence of saturation: absence keeps the conservative
+    // reading, because asserting capacity from no data is the same mistake.
+    assert.equal(isSaturated(undefined), false)
+    assert.equal(isSaturated(null), false)
+    assert.equal(isSaturated({}), false)
   })
 
   // ── trust fence ───────────────────────────────────────────────────────────
