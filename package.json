@@ -1,6 +1,6 @@
 {
   "name": "dsh-amd-free-model",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "AMD Free Model — 每日自动探测 AMD Radeon Token Factory 的免费模型清单（收费模型一律排除），在 dsh 里填一个 API Key 即可使用 DeepSeek V4、MiMo V2.6、Qwen3.8 等 AMD GPU Cloud 免费模型；目录随上游刷新、可用性自动探测、思考强度真实生效，另附 Token 热力图与 OpenAI 兼容本地转发端口。",
