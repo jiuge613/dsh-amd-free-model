@@ -1,7 +1,7 @@
 {
   "name": "dsh-amd-free-model",
   "version": "0.1.0",
-  "generatedAt": "2026-09-29T15:45:52Z",
+  "generatedAt": "2026-09-29T16:29:18Z",
   "files": [
     {
       "path": "LICENSE",
@@ -45,8 +45,8 @@
     },
     {
       "path": "index.js",
-      "bytes": 65293,
-      "sha256": "e5f91d850ebd55d55776778e7e1806319e02cd7a9479017075209c39485b34c9"
+      "bytes": 66041,
+      "sha256": "87dedfe84b6bcc55793cada8a92d82ee04d98ced0397cee1cc8c9bd9b7e8f65f"
     },
     {
       "path": "locale/en.json",
@@ -70,8 +70,8 @@
     },
     {
       "path": "src/catalog.js",
-      "bytes": 13243,
-      "sha256": "147ed052aac1de9262e46ed721aa6f8238259efd261bcaacb2a4902549282c11"
+      "bytes": 13229,
+      "sha256": "873539af04fa9b484c1716b43740b0afeee9fef1221860578e9677ce0e66e785"
     },
     {
       "path": "src/channel.js",
