@@ -27,7 +27,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { startFakeGateway, VALID_KEY, FLEET, PAID_MODEL, SATURATED_MODEL, QUOTA_MODEL } from './lib/fake-gateway.mjs'
+import { startFakeGateway, VALID_KEY, FLEET, PAID_MODEL, SATURATED_MODEL, UNEXPLAINED_429_MODEL } from './lib/fake-gateway.mjs'
 import { makeCtx, callRoute, waitFor } from './lib/fake-kernel.mjs'
 
 const API = '/api/amd-free-model'
@@ -156,9 +156,9 @@ async function main() {
   const withKey = await waitFor(async () => {
     const data = (await call('GET', '/summary')).json
     if (data?.settings?.key?.ok !== true) return null
-    // `busy` is a settled verdict too: a saturated pool is an answer, not a
-    // model the round failed to reach.
-    const settledStates = ['available', 'unavailable', 'busy', 'throttled']
+    // `busy` is a settled verdict too: a refusal is an answer, not a model the
+    // round failed to reach.
+    const settledStates = ['available', 'unavailable', 'busy']
     const settled = data.catalog.every(model => settledStates.includes(model.availability))
     return settled ? data : null
   }, { label: 'key verified and probe round settled' })
@@ -181,27 +181,24 @@ async function main() {
     assert.deepEqual(stale.map(model => model.id), [], 'these models still carry the pre-key verdict')
   })
 
-  await check('routable models probe available; refused and saturated ones do not', () => {
+  await check('a refusal is capacity, and never removes a model from the picker', () => {
     const available = withKey.catalog.filter(model => model.availability === 'available')
     const unavailable = withKey.catalog.filter(model => model.availability === 'unavailable')
     const busy = withKey.catalog.filter(model => model.availability === 'busy')
-    const throttled = withKey.catalog.filter(model => model.availability === 'throttled')
-    // Nine fleet models, and the gateway refuses three of them for three
-    // different reasons: one rejects the chat wire outright, one pool is
-    // saturated, one key is over budget. All three stay advertised — a refused
-    // routing, a full pool and a spent quota are different problems with
-    // different fixes, and none of them is a reason to hide a model.
+    // Nine fleet models; the gateway turns three of them away. One rejects the
+    // chat wire outright and leaves the picker; the other two answer 429 and
+    // stay in it as `busy`, because the free section publishes no per-user
+    // allowance for a 429 to mean "your quota" — a refusal is the fleet declining
+    // this model right now, and it clears on its own.
     assert.equal(available.length, 6)
     assert.equal(unavailable.length, 1)
     assert.equal(unavailable[0].id, 'MinerU2.5-Pro', 'the non-chat lane must be the one refused')
     assert.equal(unavailable[0].route, null, 'a refused model is not advertised')
-    assert.equal(busy.length, 1)
-    assert.equal(busy[0].id, SATURATED_MODEL)
-    assert.equal(throttled.length, 1)
-    assert.equal(throttled[0].id, QUOTA_MODEL)
-    // Capacity and quota both keep the model reachable.
-    assert.equal(busy[0].route, 'amd-free-model')
-    assert.equal(throttled[0].route, 'amd-free-model')
+    assert.equal(busy.length, 2, 'both 429 models read as capacity')
+    assert.deepEqual(busy.map(model => model.id).sort(), [UNEXPLAINED_429_MODEL, SATURATED_MODEL].sort())
+    // No model may be labelled with a quota claim — that state does not exist.
+    assert.equal(withKey.catalog.some(model => model.availability === 'throttled'), false)
+    for (const model of busy) assert.equal(model.route, 'amd-free-model', 'a busy model stays reachable')
     for (const model of available) assert.equal(model.route, 'amd-free-model')
   })
 
@@ -276,36 +273,38 @@ async function main() {
     assert.equal(result.finish.failure.status, 429)
   })
 
-  await check('a 429 from a saturated pool is reported as capacity, not quota', async () => {
-    // The gateway answers a full pool with the same 429 it uses for a spent
-    // key, so nothing in the status line separates them. The probe now reads
-    // AMD's own load endpoint: saturated reads `busy` (with a message naming
-    // the occupancy), and a real quota still reads `throttled`.
-    const { probeModel } = await import('../src/probe.js')
-    const model = { id: SATURATED_MODEL }
+  await check('a 429 is reported as capacity, never as a quota', async () => {
+    // The gateway answers a full pool with the same 429 it would use for
+    // anything else. The probe now reads AMD's own load endpoint for the
+    // wording, and both readings land on `busy` — there is no state in which a
+    // 429 is reported as an allowance on the user's account, because the free
+    // section does not document one.
+    const { probeModel, STATE } = await import('../src/probe.js')
 
-    const saturated = await probeModel(model, {
+    const saturated = await probeModel({ id: SATURATED_MODEL }, {
       apiKey: VALID_KEY,
       load: { state: 'full', utilization: 100 },
     })
     assert.equal(saturated.state, 'busy')
-    assert.match(saturated.detail, /capacity/i, 'the message must not accuse the key')
-    assert.match(saturated.detail, /100%/, 'the message must carry the occupancy reading')
+    assert.match(saturated.detail, /100%/, 'a saturated pool is named with its occupancy')
+    assert.match(saturated.detail, /not an allowance/i, 'the message must not claim a quota')
 
-    // A saturated model, a pool with headroom, and no reading at all: three
-    // different verdicts from the same 429. `probeModel` always sends the same
-    // `ping`, so the gateway keys its refusal on the model, and the test varies
-    // the load reading the plugin consults.
-    const spent = await probeModel({ id: QUOTA_MODEL }, {
+    // Same 429, fleet reporting headroom: still capacity, and the page says the
+    // gateway declined without giving a reason rather than inventing one.
+    const unexplained = await probeModel({ id: UNEXPLAINED_429_MODEL }, {
       apiKey: VALID_KEY,
       load: { state: 'idle', utilization: 12 },
     })
-    assert.equal(spent.state, 'throttled', 'a 429 with headroom is still the key budget')
+    assert.equal(unexplained.state, 'busy')
+    assert.match(unexplained.detail, /reported idle/i)
+    assert.match(unexplained.detail, /no per-user allowance/i)
 
-    // No load reading at all keeps the conservative reading rather than
-    // inventing saturation out of an absent measurement.
+    // No reading at all: the same admission, stated plainly.
     const unknown = await probeModel({ id: SATURATED_MODEL }, { apiKey: VALID_KEY })
-    assert.equal(unknown.state, 'throttled')
+    assert.equal(unknown.state, 'busy')
+    assert.match(unknown.detail, /no saturation reading/i)
+
+    assert.equal(STATE.throttled, undefined, 'a quota verdict must not exist')
   })
 
   await check('effort levels become the max_tokens actually sent', async () => {
