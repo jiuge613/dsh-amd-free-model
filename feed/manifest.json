@@ -1,7 +1,7 @@
 {
   "name": "dsh-amd-free-model",
   "version": "0.1.0",
-  "generatedAt": "2026-09-29T17:09:48Z",
+  "generatedAt": "2026-09-29T17:29:47Z",
   "files": [
     {
       "path": "LICENSE",
@@ -10,13 +10,13 @@
     },
     {
       "path": "README.md",
-      "bytes": 13963,
-      "sha256": "74671a784761518b5d2070b9d0cbe5159fd11946fd4880de28f9d0cca6694060"
+      "bytes": 14839,
+      "sha256": "2212510103fa87d86bcf322775facec38280eba32d650086ebfd88e025b0efef"
     },
     {
       "path": "README_EN.md",
-      "bytes": 14674,
-      "sha256": "45c8339474f30d740c3b98845af9cdc8b2826e50662dd377ddf149ac96eaf23c"
+      "bytes": 15568,
+      "sha256": "8264fa175092c977205efb48bdd22f259679d808ffa001a7847e94a2221f3671"
     },
     {
       "path": "adapter/dsh-llm.d.ts",
@@ -30,8 +30,8 @@
     },
     {
       "path": "client.js",
-      "bytes": 114749,
-      "sha256": "33dca9e9ba6ba9d8fd1788182a61465308c6877bdcb4b4b61178900a23792831"
+      "bytes": 115572,
+      "sha256": "5d780e11da932525a7d49c982725cf0eaa516a02cb2fb3db637cd6bb585e2d84"
     },
     {
       "path": "cordis.patch.yml",
@@ -105,8 +105,8 @@
     },
     {
       "path": "src/probe.js",
-      "bytes": 10062,
-      "sha256": "abeddc4d208b707e50e91689972de12671a597a7196ab53b9657c7094042fd80"
+      "bytes": 11302,
+      "sha256": "de1ee887ed4b6ae612ca4a119cc5576521d7fb81810f9cac875f2c4717c8cd57"
     },
     {
       "path": "src/push.js",
