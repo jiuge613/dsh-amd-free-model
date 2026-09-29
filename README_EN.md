@@ -65,13 +65,14 @@
 ### Desktop (recommended)
 
 1. Open the **left navigation → Plugins**;
-2. Paste the repository URL into the input field:
+2. Click the **add plugin** button in the top-right corner;
+3. Paste the repository URL into the input field:
 
    ```
    https://github.com/jiuge613/dsh-amd-free-model
    ```
 
-3. Confirm, then restart the app once (or let the plugin hot-reload).
+4. Confirm, then restart the app once (or let the plugin hot-reload).
 
 The in-app plugin manager handles the profile gate itself — do **not** install
 with a `link:` dependency or a directory junction by hand; the gate refuses to
