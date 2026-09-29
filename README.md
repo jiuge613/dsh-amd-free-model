@@ -64,13 +64,27 @@
 
 ## 安装
 
+### 桌面端（推荐）
+
+1. 打开 **设置 → 插件**；
+2. 在添加插件的输入框里填仓库地址：
+
+   ```
+   https://github.com/jiuge613/dsh-amd-free-model
+   ```
+
+3. 确认安装，重启一次应用（或等插件热重载生效）。
+
+应用内的插件管理器会自己处理 profile 闸门问题——**不要**用 `link:` 依赖或目录
+junction 手工装，闸门会以 `PROFILE_UPGRADE_REQUIRED` 拒绝启动。
+
+### 命令行（`dsh web`）
+
 ```bash
-dsh plugin --profile web add /绝对路径/dsh-amd-free-model
+dsh plugin --profile web add github:jiuge613/dsh-amd-free-model
 ```
 
-装完重启一次应用。`--profile` 填你实际使用的那个。
-
-> **桌面端**不要用 `link:` 依赖安装（profile 闸门拒绝符号链接/junction，报 `PROFILE_UPGRADE_REQUIRED`）。用应用内插件管理器，或复制真实目录 + 在 `dependencies` 写版本号 + `dsh.profile.bundles` 追加包名——详见参照项目的安装文档。
+`--profile` 填你实际使用的那个。装完重启一次应用。
 
 ### 配置 Key
 
