@@ -1,7 +1,7 @@
 {
   "name": "dsh-amd-free-model",
   "version": "0.1.1",
-  "generatedAt": "2026-09-29T18:04:23Z",
+  "generatedAt": "2026-09-29T18:20:27Z",
   "files": [
     {
       "path": "LICENSE",
@@ -10,13 +10,13 @@
     },
     {
       "path": "README.md",
-      "bytes": 15009,
-      "sha256": "d18466a0fa1c69d137613d9ac6179765989158c789ccdff498a3674f98c429d6"
+      "bytes": 15056,
+      "sha256": "afd803aaf61df66ea3861b499c5d94154eeee1b8269140af23d4930ac00c3352"
     },
     {
       "path": "README_EN.md",
-      "bytes": 15692,
-      "sha256": "cf5e6c0e98e5debbeda0ec8a32043ec37c3d881d426d144d6463d7a8c4df739f"
+      "bytes": 15752,
+      "sha256": "81dc590c23fbd0cd66e5bfc3a7134506786f6962022099d5d79788b64d040a65"
     },
     {
       "path": "adapter/dsh-llm.d.ts",
