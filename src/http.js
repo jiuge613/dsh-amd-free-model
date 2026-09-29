@@ -84,6 +84,26 @@ function retryAfter(header) {
 const SNIFF_BYTES = 4096
 
 /**
+ * Two deadlines, because "no answer yet" and "answer stalled" are different
+ * failures with different remedies.
+ *
+ * `FIRST_BYTE_MS` bounds only the wait for the response head: the request
+ * reached the gateway and nothing has come back. A healthy route answers in
+ * seconds, so a minute of silence is a failure — and waiting five minutes to
+ * learn that is what turned a dead turn into a UI that looked hung. The single
+ * `timeoutMs` this replaced applied the same budget twice, once here and once
+ * in `readSse`, so a stalled head spent the full five minutes before saying
+ * anything at all.
+ *
+ * `IDLE_MS` then bounds the gaps *between* frames of an answer already
+ * streaming, and stays generous on purpose: a reasoning model legitimately emits
+ * nothing for a long stretch mid-answer, and cutting it off would truncate a
+ * turn that was going to succeed.
+ */
+const FIRST_BYTE_MS = 60_000
+const IDLE_MS = 300_000
+
+/**
  * Classify the beginning of a response body by shape.
  *
  * @param {string} text - the decoded head, possibly a partial stream
@@ -109,10 +129,10 @@ export function sniffBody(text) {
  * @param {number} limit
  * @param {object} options
  * @param {AbortSignal} [options.signal]
- * @param {number} options.timeoutMs - how long to wait for anything at all
+ * @param {number} [options.timeoutMs] - how long to wait for the first byte
  * @returns {Promise<{reader:object, chunks:Uint8Array[], done:boolean, text:string, decoder:TextDecoder}>}
  */
-async function readHead(stream, limit, { signal, timeoutMs }) {
+async function readHead(stream, limit, { signal, timeoutMs = FIRST_BYTE_MS }) {
   const reader = stream.getReader()
   const chunks = []
   // One decoder for the whole body: flushing here would corrupt a multi-byte
@@ -255,7 +275,7 @@ function userAgentWith(attribution) {
  * @param {number} [options.timeoutMs] - idle deadline for the stream
  * @returns {Promise<{status:number, headers:Headers}>}
  */
-export async function postStreamed({ apiKey, body, attributionUserAgent, signal, onData, timeoutMs = 300000 }) {
+export async function postStreamed({ apiKey, body, attributionUserAgent, signal, onData, timeoutMs = IDLE_MS }) {
   const headers = apiHeaders(apiKey, { stream: true })
   headers['user-agent'] = userAgentWith(attributionUserAgent)
   let response
@@ -280,7 +300,9 @@ export async function postStreamed({ apiKey, body, attributionUserAgent, signal,
 
   // `Content-Type` is a hint; take the first bytes and let the body say what it
   // is. Whatever was spent reading them is replayed in front of the stream.
-  const head = await readHead(response.body, SNIFF_BYTES, { signal, timeoutMs })
+  // The head gets FIRST_BYTE_MS rather than the caller's stream budget: "no
+  // answer at all" and "answer went quiet" are different questions.
+  const head = await readHead(response.body, SNIFF_BYTES, { signal, timeoutMs: FIRST_BYTE_MS })
   const shape = sniffBody(head.text)
   if (shape === 'empty') throw new UpstreamError('amd-free-model: upstream returned no body', CODE.empty)
   if (shape === 'sse') {
@@ -306,7 +328,7 @@ export async function postStreamed({ apiKey, body, attributionUserAgent, signal,
  * own response body) or an async iterable, which is what lets a head that was
  * already sniffed be replayed in front of the live reader.
  */
-export async function readSse(source, onData, signal, timeoutMs = 300000) {
+export async function readSse(source, onData, signal, timeoutMs = IDLE_MS) {
   const reader = typeof source?.getReader === 'function' ? source.getReader() : null
   const iterator = reader ?? (typeof source?.[Symbol.asyncIterator] === 'function' ? source[Symbol.asyncIterator]() : source)
   const decoder = new TextDecoder()
