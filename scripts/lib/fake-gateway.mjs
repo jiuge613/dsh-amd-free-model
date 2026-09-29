@@ -57,6 +57,24 @@ export const FLEET = [
 export const PAID_MODEL = 'Instanced-Whisper-Large-v3'
 
 /**
+ * A fleet model this gateway always answers 429 for, and reports as `full` in
+ * its load document. It is what lets the capacity-versus-quota test drive a
+ * real refusal without waiting for a real one to happen.
+ *
+ * Deliberately a model no other test asserts success on: the existing stream
+ * and forward-port cases ride `DeepSeek-V4-Flash`, and saturating that one
+ * would have turned half the suite into capacity tests.
+ */
+export const SATURATED_MODEL = 'Qwen3.8-27B'
+
+/**
+ * A routable model the gateway also answers 429 for, but reports as `idle` with
+ * headroom. It is the counterpart to {@link SATURATED_MODEL}: same status line,
+ * opposite verdict, decided only by the load reading the plugin consults.
+ */
+export const QUOTA_MODEL = 'GLM-5.3-Flash'
+
+/**
  * Start the gateway.
  *
  * @param {object} [options]
@@ -144,6 +162,11 @@ export async function startFakeGateway(options = {}) {
           utilization,
         }
       })
+      // The model the chat wire refuses is the one the load document reports
+      // as saturated, so the two signals describe the same world.
+      models[SATURATED_MODEL] = { state: 'full', label: 'At capacity', utilization: 100 }
+      // …and its counterpart answers the same 429 with headroom to spare.
+      models[QUOTA_MODEL] = { state: 'idle', label: 'Idle', utilization: 12 }
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ models, scope: 'fleet' }))
       return
@@ -177,6 +200,16 @@ export async function startFakeGateway(options = {}) {
         if (prompt.includes('quota')) {
           res.writeHead(429, { 'content-type': 'application/json', 'retry-after': '7' })
           res.end(JSON.stringify({ error: { message: 'rate limit exceeded for this key', type: 'rate_limit_error' } }))
+          return
+        }
+        // A saturated pool is refused with the *same* 429 the gateway uses for
+        // a spent key. Nothing in the status line tells them apart — which is
+        // the whole reason the plugin consults its own load endpoint before
+        // believing a 429 is about the caller's quota. Keyed on the model so
+        // the probe's own `ping` prompt can drive it.
+        if (prompt.includes('saturated') || body.model === SATURATED_MODEL || body.model === QUOTA_MODEL) {
+          res.writeHead(429, { 'content-type': 'application/json', 'retry-after': '3' })
+          res.end(JSON.stringify({ error: { message: 'no capacity available for this model', type: 'rate_limit_error' } }))
           return
         }
         // Note the lying content-type on every SSE response (see module note).
