@@ -48,9 +48,8 @@ window.__ModuleLoader__.load({
         loadFailed: '无法连接插件后端',
         retry: '重试',
         'state.available': '可用',
-        'state.busy': '算力满载',
+        'state.busy': '繁忙，稍后重试',
         'state.unavailable': '暂不可用',
-        'state.throttled': '已达限额',
         'state.unknown': '未探测',
         'state.no-key': '待填 Key',
         'hint.noKey': '还没有配置 API Key。到 developer.amd.com.cn 登录后在个人页领取，再粘贴到下方「API Key」一栏。',
@@ -58,6 +57,7 @@ window.__ModuleLoader__.load({
         'hint.hidden': '探测显示网关点名了它却不路由它，因此已从模型选择器中移除；某一次探测重新通过，它会自己回来。',
         'hint.sharedBudget': '该模型思考不可关闭：思考与可见回答共用同一份额度，档位越低留给正文的越少。',
         'hint.load': '负载 {state} · {util}%',
+        'hint.busy': '网关暂时不接这个模型的请求（算力繁忙）。免费区没有用户配额限制，通常几分钟内自行恢复；重试即可，无需更换 Key。',
         'group.notAdvertised': '不在选择器中',
         'tag.vision': '视觉',
         'tag.text': '纯文本',
@@ -233,9 +233,8 @@ window.__ModuleLoader__.load({
         loadFailed: 'Cannot reach the plugin backend',
         retry: 'Retry',
         'state.available': 'Available',
-        'state.busy': 'Pool at capacity',
+        'state.busy': 'Busy, try again shortly',
         'state.unavailable': 'Unavailable',
-        'state.throttled': 'Quota reached',
         'state.unknown': 'Not probed',
         'state.no-key': 'Key needed',
         'hint.noKey': 'No API key configured yet. Sign in at developer.amd.com.cn, pick one up on your profile page, then paste it into the API Key field below.',
@@ -243,6 +242,7 @@ window.__ModuleLoader__.load({
         'hint.hidden': 'The gateway names it but refuses to route it, so it is out of the model picker. It returns by itself as soon as a probe gets through.',
         'hint.sharedBudget': 'Thinking cannot be switched off on this model, so thinking and the visible answer share one ceiling — a lower rung leaves the answer less room.',
         'hint.load': 'load {state} · {util}%',
+        'hint.busy': 'The gateway is not taking requests for this model right now (fleet capacity). The free section has no per-user allowance, so this is not a quota on your account — it usually clears within minutes. Retry; there is no need to change the key.',
         'group.notAdvertised': 'Not in the picker',
         'tag.vision': 'Vision',
         'tag.text': 'Text only',
@@ -435,7 +435,8 @@ window.__ModuleLoader__.load({
 .ofm_badge{margin-left:auto;font-size:10.5px;padding:2px 7px;border-radius:6px;border:1px solid var(--dsw-alias-border-l1);white-space:nowrap}
 .ofm_badge.available{color:var(--dsw-alias-state-success-primary);border-color:var(--dsw-alias-state-success-primary)}
 .ofm_badge.no-key{color:var(--dsw-alias-state-warning-primary);border-color:var(--dsw-alias-state-warning-primary)}
-.ofm_badge.throttled,.ofm_badge.unavailable{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}
+.ofm_badge.busy{color:var(--dsw-alias-state-warning-primary);border-color:var(--dsw-alias-state-warning-primary)}
+.ofm_badge.unavailable{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary)}
 .ofm_badge.unknown{color:var(--dsw-alias-label-tertiary)}
 .ofm_link{font-size:12px;color:var(--dsw-alias-state-business-primary);text-decoration:none;white-space:nowrap;padding:0 6px;align-self:center}
 .ofm_link:hover{text-decoration:underline}
@@ -1071,9 +1072,13 @@ window.__ModuleLoader__.load({
         m.availability === 'no-key' ? h('p', { className: 'ofm_note', title: m.detail ?? '' }, t('hint.noKey'))
           : m.availability === 'unknown' ? h('p', { className: 'ofm_note' }, t('hint.unknown'))
             : m.availability === 'unavailable' ? h('p', { className: 'ofm_note', title: m.detail ?? '' }, t('hint.hidden'))
-              : h('div', { className: 'ofm_metrics' },
-                m.ttftMs === undefined || m.ttftMs === 0 ? null : h('span', null, t('tag.latency'), ' ', h('b', null, Math.round(m.ttftMs)), ' ms'),
-                h('span', null, t('pref.probedAt'), ' ', h('b', null, ago(m.probedAt, t.locale)))),
+              // A refusal is capacity, not a fault: the free section has no
+              // per-user allowance, so nothing here accuses the key. Show the
+              // gateway's own words rather than an invented quota.
+              : m.availability === 'busy' ? h('p', { className: 'ofm_note', title: m.detail ?? '' }, t('hint.busy'))
+                : h('div', { className: 'ofm_metrics' },
+                  m.ttftMs === undefined || m.ttftMs === 0 ? null : h('span', null, t('tag.latency'), ' ', h('b', null, Math.round(m.ttftMs)), ' ms'),
+                  h('span', null, t('pref.probedAt'), ' ', h('b', null, ago(m.probedAt, t.locale)))),
         m.canDisableThinking === false ? h('p', { className: 'ofm_note' }, t('hint.sharedBudget')) : null,
         onBench === undefined ? null : h('div', { className: 'ofm_row' },
           h(Button, { disabled: bench?.running === true, onClick: () => onBench(m) }, bench?.running === true ? t('bench.running') : t('bench.run')),
