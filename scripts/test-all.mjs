@@ -29,6 +29,10 @@ const SUITES = [
   // entry — exactly how a `bytes`/`size` field mismatch shipped and left the
   // in-app upgrade permanently broken.
   { script: 'scripts/updater-contract-test.mjs', timeoutMs: 60_000 },
+  // Same shape, different seam: the announcement feed is validated against a
+  // fixed vocabulary, and a document using a lookalike field name parses as
+  // "no announcements" rather than as an error the author would notice.
+  { script: 'scripts/feed-contract-test.mjs', timeoutMs: 60_000 },
   { script: 'scripts/host-selftest.mjs', timeoutMs: 120_000 },
   // Its own process by necessity: the AMD origin is a module-load constant, so
   // testing the paid section needs a process that never loaded the free one.
