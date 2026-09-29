@@ -4,17 +4,17 @@
  * Four sources, deliberately layered so no single one can break the plugin:
  *
  * 1. the free directory (`POST /api/tokenfactory/bootstrap?directory=true`,
- *    section key `public_free`) 鈥?the only section this plugin ever reads.
+ *    section key `public_free`) —the only section this plugin ever reads.
  *    AMD publishes a second, paid section (`dedicated`, served from
  *    `/api/templates`) whose cards deploy billable instances; it is never
  *    fetched, and as defense in depth {@link isFreeDetail} also drops any
  *    dedicated card that appears in the free directory anyway;
- * 2. the directory detail documents (`/api/tokenfactory/model?id=鈥) 鈥?the
+ * 2. the directory detail documents (`/api/tokenfactory/model?id=—) —the
  *    authoritative capability set: context length, vision/tools/reasoning flags
  *    and supported parameters, published per model without a key;
- * 3. the OpenAI listing (`/api/v1/models`) 鈥?what the key may actually route,
+ * 3. the OpenAI listing (`/api/v1/models`) —what the key may actually route,
  *    fetched only when a key is configured;
- * 4. a vetted local baseline 鈥?so a cold start with no network, or a discovery
+ * 4. a vetted local baseline —so a cold start with no network, or a discovery
  *    endpoint that moved, still lists the fleet with honest capacities.
  *
  * The baseline below was read from the live free-section detail documents on
@@ -27,8 +27,8 @@ import { baseModelId } from './upstream.js'
 
 /**
  * The one directory section this plugin treats as its input: "Public Free Model
- * APIs" (measured 2026-09-29). Anything else 鈥?notably `dedicated`, AMD's
- * pay-with-credits instance section 鈥?is refused rather than filtered, because
+ * APIs" (measured 2026-09-29). Anything else —notably `dedicated`, AMD's
+ * pay-with-credits instance section —is refused rather than filtered, because
  * a section whose meaning we do not know may hide billing behind an id.
  */
 export const FREE_SECTION = 'public_free'
@@ -99,7 +99,7 @@ export function displayModelName(modelId) {
  * Build catalog entries from a list of raw ids, layered over the baseline.
  *
  * Free-only enforcement runs here: when a detail document exists for an id and
- * says the model belongs to the paid section, the entry is dropped entirely 鈥? * it never reaches the picker, the roster, or the forward port. An id whose
+ * says the model belongs to the paid section, the entry is dropped entirely — * it never reaches the picker, the roster, or the forward port. An id whose
  * detail fetch *failed* keeps its curated baseline row (the baseline contains
  * free models only), so a transient network error degrades capabilities, not
  * the free-only promise.
@@ -162,7 +162,7 @@ export function parseDetailCaps(model) {
 }
 
 /**
- * Parse the OpenAI `{"data":[{"id":鈥]}` listing.
+ * Parse the OpenAI `{"data":[{"id":—]}` listing.
  *
  * @param {object} payload
  * @returns {string[]} ids
@@ -196,7 +196,7 @@ export function parseLoad(payload) {
 /**
  * Parse the model-directory bootstrap document into its detail ids.
  *
- * @param {object} payload - `{section, cards: [{id: "model_gateway:鈥?}]}`
+ * @param {object} payload - `{section, cards: [{id: "model_gateway:—}]}`
  * @returns {string[]} raw directory ids in card order
  */
 export function parseDirectory(payload) {
@@ -208,7 +208,7 @@ export function parseDirectory(payload) {
 
 /**
  * The section key a directory document declares (`public_free`, `dedicated`,
- * 鈥?, or `undefined` when it declares none. The caller refuses any section it
+ * —, or `undefined` when it declares none. The caller refuses any section it
  * does not recognise before reading a single card.
  *
  * @param {object} payload
@@ -225,7 +225,7 @@ export function directorySection(payload) {
  *
  * AMD publishes a second, paid section (`dedicated`: "Deploy dedicated
  * instances with your own credits") from a different endpoint. A bootstrap
- * document that declares any other section key 鈥?or one we cannot read 鈥?is
+ * document that declares any other section key —or one we cannot read —is
  * rejected *before* a single card is parsed: a section whose meaning we do not
  * know may hide billing behind an ordinary-looking id, and the catalog's whole
  * promise is that everything in it is free.
@@ -237,7 +237,7 @@ export function directorySection(payload) {
 export function assertFreeSection(payload) {
   const section = directorySection(payload)
   if (section !== undefined && section !== FREE_SECTION) {
-    throw new Error(`directory answered section "${section}", not "${FREE_SECTION}" 鈥?refusing to read a section this plugin does not own`)
+    throw new Error(`directory answered section "${section}", not "${FREE_SECTION}" —refusing to read a section this plugin does not own`)
   }
   return section
 }
@@ -250,7 +250,7 @@ const FREE_STATUSES = new Set(['free_endpoint', 'limited_free'])
  * instances, deployed against the account's credits) must never enter the
  * catalog even if a card for one shows up in the free directory:
  *
- * - `token_factory.section` is the authoritative discriminator 鈥?`public_free`
+ * - `token_factory.section` is the authoritative discriminator —`public_free`
  *   passes, `dedicated` fails outright;
  * - without a section, the `access.kind` (`dedicated_deploy`) and the
  *   measured `display_status` whitelist settle it;
@@ -259,7 +259,7 @@ const FREE_STATUSES = new Set(['free_endpoint', 'limited_free'])
  *   gated, so only a parsing surprise lands here, and parsing surprises do not
  *   get the benefit of the doubt on a billing question.
  *
- * A missing detail (the fetch failed) is handled by the caller 鈥?the baseline
+ * A missing detail (the fetch failed) is handled by the caller —the baseline
  * row stands in, and baseline rows are curated from the free section only.
  *
  * @param {object|undefined} model - the detail document's `model` object
