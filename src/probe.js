@@ -31,6 +31,10 @@ import { modelsUrl } from './upstream.js'
 export const STATE = {
   available: 'available',
   unavailable: 'unavailable',
+  /** 429 while AMD's own load endpoint reports the pool saturated. Capacity,
+   *  not the key's quota: it clears by itself, so the model stays advertised. */
+  busy: 'busy',
+  /** 429 with the fleet reporting headroom — the key's own budget. */
   throttled: 'throttled',
   noKey: 'no-key',
   unknown: 'unknown',
@@ -71,11 +75,13 @@ export async function verifyKey(apiKey, { signal } = {}) {
  * @param {object} options
  * @param {string} options.apiKey
  * @param {string} [options.attributionUserAgent]
+ * @param {{state: string, utilization: number}} [options.load] - the model's
+ *   most recent fleet-load reading, so a refusal can be read against capacity
  * @param {AbortSignal} [options.signal]
  * @param {number} [options.timeoutMs]
  * @returns {Promise<{state: string, detail?: string, latencyMs: number, ttftMs?: number}>}
  */
-export async function probeModel(model, { apiKey, attributionUserAgent, signal, timeoutMs = 45000 } = {}) {
+export async function probeModel(model, { apiKey, attributionUserAgent, load, signal, timeoutMs = 45000 } = {}) {
   const started = Date.now()
   if (typeof apiKey !== 'string' || apiKey.trim() === '') {
     return { state: STATE.noKey, detail: 'no API key configured', latencyMs: 0 }
@@ -98,8 +104,8 @@ export async function probeModel(model, { apiKey, attributionUserAgent, signal, 
     return { state: STATE.available, latencyMs: Date.now() - started, ttftMs: firstDelta === undefined ? undefined : firstDelta - started }
   } catch (error) {
     return {
-      state: stateOf(error),
-      detail: typeof error?.message === 'string' ? error.message.slice(0, 200) : String(error),
+      state: stateOf(error, load),
+      detail: describeRefusal(error, load),
       latencyMs: Date.now() - started,
     }
   }
@@ -127,9 +133,52 @@ export async function probeModel(model, { apiKey, attributionUserAgent, signal, 
  */
 const ROUTING_REFUSAL_STATUS = new Set([400, 404, 422])
 
-function stateOf(error) {
+/**
+ * Is this model's compute pool saturated right now?
+ *
+ * AMD's own load endpoint publishes exactly this: `state: 'full'` at 100%
+ * utilization. A 429 arriving while the pool reads `full` is almost never the
+ * user's key quota — it is the fleet turning away work because the GPUs are all
+ * busy, which clears on its own in minutes and costs the user nothing to wait
+ * out. Calling that a quota says something false about *their* account, and
+ * (before this check existed) it is what put a red "已达限额" badge on models
+ * that were merely saturated.
+ *
+ * A missing or stale reading is not evidence either way, so it keeps the
+ * conservative reading (quota) — asserting saturation from no data would be the
+ * same mistake one level down.
+ *
+ * @param {{state: string, utilization: number}|undefined} load
+ * @returns {boolean}
+ */
+export function isSaturated(load) {
+  if (!load || typeof load !== 'object') return false
+  if (load.state === 'full') return true
+  // 99%+ is `full` in everything but the label, and the utilization is the
+  // number the endpoint computes; trust it over a string that may lag.
+  return typeof load.utilization === 'number' && load.utilization >= 99
+}
+
+/**
+ * The sentence the settings page shows under a refused model.
+ *
+ * The distinction the badge cannot make: a saturated fleet and an exhausted key
+ * look identical in a status code, and the remedy is the opposite — the first
+ * clears by itself, the second does not.
+ */
+function describeRefusal(error, load) {
+  const base = typeof error?.message === 'string' && error.message !== '' ? error.message : String(error)
+  if (error?.code === CODE.quota && isSaturated(load)) {
+    const percent = typeof load?.utilization === 'number' ? Math.round(load.utilization) : null
+    const reading = percent === null ? 'currently at capacity' : `currently at ${percent}% utilization`
+    return `AMD's compute pool for this model is ${reading} (fleet load: ${load.state}). This is capacity, not your key's quota — it usually clears within minutes. The gateway said: ${base}`
+  }
+  return base
+}
+
+function stateOf(error, load) {
   switch (error?.code) {
-    case CODE.quota: return STATE.throttled
+    case CODE.quota: return isSaturated(load) ? STATE.busy : STATE.throttled
     case CODE.credential: return STATE.unknown
     default: break
   }
@@ -153,6 +202,10 @@ function stateOf(error) {
  * 429, so a wide burst would throttle the very key whose availability we are
  * establishing.
  *
+ * `options.load` may be a reading for one model or a resolver for the whole
+ * map; it is resolved per model, immediately before that model's ping, so a
+ * saturated model is recognised even when the fleet fills up mid-round.
+ *
  * @param {Array<object>} models
  * @param {object} options - forwarded to `probeModel` (needs `apiKey`)
  * @param {(id: string, result: object) => void} [onResult]
@@ -166,7 +219,9 @@ export async function probeCatalog(models, options = {}, onResult = () => {}, co
     while (cursor < models.length) {
       const index = cursor++
       const model = models[index]
-      const result = await probeModel(model, options)
+      const perModel = { ...options }
+      if (typeof options.load === 'function') perModel.load = options.load(model.id)
+      const result = await probeModel(model, perModel)
       results[model.id] = result
       onResult(model.id, result)
     }
