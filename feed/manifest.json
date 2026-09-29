@@ -1,0 +1,147 @@
+{
+  "name": "dsh-amd-free-model",
+  "version": "0.1.0",
+  "generatedAt": "2026-09-29T15:45:52Z",
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 1171,
+      "sha256": "1e3985ddcab885815140a2b5a26d3b4b3bcdd419e68fa931ed17bdbb2e919b87"
+    },
+    {
+      "path": "README.md",
+      "bytes": 13963,
+      "sha256": "74671a784761518b5d2070b9d0cbe5159fd11946fd4880de28f9d0cca6694060"
+    },
+    {
+      "path": "README_EN.md",
+      "bytes": 14674,
+      "sha256": "45c8339474f30d740c3b98845af9cdc8b2826e50662dd377ddf149ac96eaf23c"
+    },
+    {
+      "path": "adapter/dsh-llm.d.ts",
+      "bytes": 431,
+      "sha256": "db211ac5cddea3851b775e79db8b9fb676551b9f3ef43583e96232b02faef999"
+    },
+    {
+      "path": "adapter/kernel.js",
+      "bytes": 2159,
+      "sha256": "33cc92895a094c342011176e7ead377bc4764e9e80417a49f67fd33afa86d188"
+    },
+    {
+      "path": "client.js",
+      "bytes": 114669,
+      "sha256": "64d707a1731ed9d656769ccc3ba3cc3bf995eba64c9995ce53bff25f91538e75"
+    },
+    {
+      "path": "cordis.patch.yml",
+      "bytes": 306,
+      "sha256": "ee6df081fcd0e09ae90dee04c3c7952260a1b655424ab186b6e0c2532d386d45"
+    },
+    {
+      "path": "icon.svg",
+      "bytes": 799,
+      "sha256": "aa15a41827cdffa9dd38459d0aab098ed1500afa2276d8ec2c81c996a4da6c9e"
+    },
+    {
+      "path": "index.js",
+      "bytes": 65293,
+      "sha256": "e5f91d850ebd55d55776778e7e1806319e02cd7a9479017075209c39485b34c9"
+    },
+    {
+      "path": "locale/en.json",
+      "bytes": 330,
+      "sha256": "6ddc6b4cfb9dff1341432fc0b3ef8649c1eca96bfd9a37931bf0a42709a43720"
+    },
+    {
+      "path": "locale/zh.json",
+      "bytes": 346,
+      "sha256": "f1cfe0fa5f5fc75301b846258ec0e152979541bd9df911ba4ae458510fc23887"
+    },
+    {
+      "path": "package.json",
+      "bytes": 1739,
+      "sha256": "7b7f029c1387d2736dbc23a077fd1a61d31db2d0b3b2b148ccfcf3a0a2c46990"
+    },
+    {
+      "path": "src/adapter.js",
+      "bytes": 14670,
+      "sha256": "60ac0352f37f9dd3fd4967cc310e34485faa48cd506e41de6930eed0b07a06b0"
+    },
+    {
+      "path": "src/catalog.js",
+      "bytes": 13243,
+      "sha256": "147ed052aac1de9262e46ed721aa6f8238259efd261bcaacb2a4902549282c11"
+    },
+    {
+      "path": "src/channel.js",
+      "bytes": 1292,
+      "sha256": "c1b80fdaac75fa320fd619b5dd09d796a8c4b1c8f58af07b921f548a5604c357"
+    },
+    {
+      "path": "src/effort.js",
+      "bytes": 7484,
+      "sha256": "e8a80dfcc4602e78b6d85d7b7e55e1c44e90ed775d0cb175daab654831ecf70a"
+    },
+    {
+      "path": "src/feed.js",
+      "bytes": 11146,
+      "sha256": "17f8c02e47a612c0bb25ce0df8f5b439480aa563e56cdd1b4f8197aea1c8a6ad"
+    },
+    {
+      "path": "src/forward.js",
+      "bytes": 12495,
+      "sha256": "676024bfa89fabb4d49ce63a16b48de1863caee062f8f93701534fcd51ee2bca"
+    },
+    {
+      "path": "src/http.js",
+      "bytes": 17786,
+      "sha256": "5a7588902282e554dcdfc089a355ca42d99c8dbfb422a4f3d5a69b944a2266bb"
+    },
+    {
+      "path": "src/messages.js",
+      "bytes": 17173,
+      "sha256": "adb840efc95948f94cc2e662af8f9139c80271a31e7df30a9748bb67e1cb617b"
+    },
+    {
+      "path": "src/probe.js",
+      "bytes": 7202,
+      "sha256": "3d001bacdd4a39ac108efd78d5e58efc135bb877d18066700e8777122997a98f"
+    },
+    {
+      "path": "src/push.js",
+      "bytes": 3210,
+      "sha256": "f76943d7e0df01dce401807137537cecacc697daea38e5e8877420320d8f9e39"
+    },
+    {
+      "path": "src/reload.js",
+      "bytes": 11290,
+      "sha256": "681af7b7b96378dee13d28ce57312df67107c12f29d3afd56098d275eec6c4f5"
+    },
+    {
+      "path": "src/store.js",
+      "bytes": 13149,
+      "sha256": "635f287b72988c78fc91a5df9115f79959d1b2e8d921edcec51a951acdf7b005"
+    },
+    {
+      "path": "src/stream.js",
+      "bytes": 17595,
+      "sha256": "a14f8df3e7706228047d4fedc8afe5f166376dbc5773849b8e4c29dde6a988f4"
+    },
+    {
+      "path": "src/trust.js",
+      "bytes": 4042,
+      "sha256": "aadee43204043c18486ac8b0d9f6ffff8f4648a0499711611b061cc30e67e0af"
+    },
+    {
+      "path": "src/updater.js",
+      "bytes": 21294,
+      "sha256": "8d208ee6a66fd15aaa055f024b94dcff964f99a1c70d02defe80a3ade0f9b870"
+    },
+    {
+      "path": "src/upstream.js",
+      "bytes": 6100,
+      "sha256": "c0a7c5bb2fafa8b01e35dedae96449e3b3b9b1c9f3e072600738432449751cb4"
+    }
+  ]
+}
