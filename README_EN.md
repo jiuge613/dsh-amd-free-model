@@ -62,13 +62,28 @@
 
 ## Install
 
+### Desktop (recommended)
+
+1. Open **Settings → Plugins**;
+2. Paste the repository URL into the add-plugin field:
+
+   ```
+   https://github.com/jiuge613/dsh-amd-free-model
+   ```
+
+3. Confirm, then restart the app once (or let the plugin hot-reload).
+
+The in-app plugin manager handles the profile gate itself — do **not** install
+with a `link:` dependency or a directory junction by hand; the gate refuses to
+start with `PROFILE_UPGRADE_REQUIRED`.
+
+### Command line (`dsh web`)
+
 ```bash
-dsh plugin --profile web add /absolute/path/dsh-amd-free-model
+dsh plugin --profile web add github:jiuge613/dsh-amd-free-model
 ```
 
-Restart once after installing; `--profile` is whichever profile you actually run.
-
-> **On desktop**, do not install with a `link:` dependency (the profile gate rejects symlinks and junctions, reporting `PROFILE_UPGRADE_REQUIRED`). Use the in-app plugin manager, or copy a real directory, add the version to `dependencies`, and append the package name to `dsh.profile.bundles` — see the reference project's install notes for the full walkthrough.
+`--profile` is whichever profile you actually run. Restart once after installing.
 
 ### Configure the key
 
