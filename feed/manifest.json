@@ -1,7 +1,7 @@
 {
   "name": "dsh-amd-free-model",
-  "version": "0.1.1",
-  "generatedAt": "2026-09-29T18:44:27Z",
+  "version": "0.1.2",
+  "generatedAt": "2026-09-29T18:48:54Z",
   "files": [
     {
       "path": "LICENSE",
@@ -61,7 +61,7 @@
     {
       "path": "package.json",
       "bytes": 1739,
-      "sha256": "3d17cefd787c56a86f31be5ef05b52c203a38fd33e9f5f14919e1b8a4c5b5fc8"
+      "sha256": "677d96de4265da3bc1a7423ebee57ce6c5d5a076aa0021275c425e7716519599"
     },
     {
       "path": "src/adapter.js",
