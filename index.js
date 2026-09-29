@@ -358,7 +358,13 @@ export function apply(ctx, config) {
     // first makes a not-yet-probed model read `unknown` ("not probed"), which
     // is the truth, instead of a confident answer about a state that ended.
     availability.update({ results: {} })
-    const results = await probeCatalog(catalog, { apiKey, attributionUserAgent }, (id, result) => {
+    // Read the fleet load immediately before the pings, so a 429 is judged
+    // against the pool's occupancy *at the moment it happened* rather than a
+    // cached reading that may be two minutes stale — the whole point is to tell
+    // "the GPUs are full" apart from "your key is spent", and those two can
+    // flip within a single round.
+    await refreshLoad()
+    const results = await probeCatalog(catalog, { apiKey, attributionUserAgent, load: id => availability.get().load?.[id] }, (id, result) => {
       availability.edit(state => ({ ...state, results: { ...state.results, [id]: { state: result.state, ...result.detail === undefined ? {} : { detail: result.detail }, ...result.ttftMs === undefined ? {} : { ttftMs: result.ttftMs }, latencyMs: result.latencyMs, at: Date.now() } } }))
     }, 2)
     availability.update({ at: Date.now() })
