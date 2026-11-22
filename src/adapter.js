@@ -68,6 +68,23 @@ export class AmdFreeModelAdapter {
     })
   }
 
+  /**
+   * This lane has no separate image pricing: an attached image is counted as
+   * ordinary input tokens by the gateway, so there is nothing route-owned to
+   * report and the token meter keeps its neutral estimate.
+   */
+  imageRequestPricing() {
+    return undefined
+  }
+
+  /**
+   * Images travel inline in the chat body exactly as the harness normalized
+   * them, so the request target is the image itself.
+   */
+  imageRequestTarget(_provider, _model, image) {
+    return { width: image.width, height: image.height, maxBytes: image.bytes }
+  }
+
   /** Models this route advertises right now. */
   async listModels(provider) {
     const state = this.deps.state()
